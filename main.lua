@@ -23,6 +23,9 @@ function love.load()
     targetList = {}
     maxTarget = 20
 
+    redTargetList = {}
+    maxRedTarget = 20
+
     particleList = {}
     animationList = {}
 
@@ -84,6 +87,12 @@ function love.load()
         resetColor()
     end
 
+    function drawSnakeLife()
+        local lifeFont = love.graphics.newFont(20)
+        love.graphics.setFont(lifeFont)
+        love.graphics.print("Life: " .. snake.life, 0, 24)
+    end
+
     function updateParticle(dt)
         table.insert(particleList, {
             x = snake.posX + snake.width / 2,
@@ -117,18 +126,52 @@ function love.load()
 
     function spawnTarget()
         if #targetList < maxTarget then
+            local x = math.random(20, 1260)
+            local y = math.random(20, 700)
             local target = {
-                x = math.random(20, 1260),
-                y = math.random(20, 700),
-                radius = 6
+                x = x,
+                y = y,
+                originX = x,
+                originY = y,
+                radius = 6,
+                moveRange = 40,
+                vx = (math.random(0, 1) == 0 and -1 or 1) * 30, -- vitesse px/s
+                vy = (math.random(0, 1) == 0 and -1 or 1) * 30
             }
             table.insert(targetList, target)
+        end
+    end
+    
+
+    function spawnRedTarget()
+        if #redTargetList < maxRedTarget then
+            local x = math.random(20, 1260)
+            local y = math.random(20, 700)
+            local redTarget = {
+                x = x,
+                y = y,
+                originX = x,
+                originY = y,
+                radius = 6,
+                moveRange = 40,
+                vx = (math.random(0, 1) == 0 and -1 or 1) * 30,
+                vy = (math.random(0, 1) == 0 and -1 or 1) * 30
+            }
+            table.insert(redTargetList, redTarget)
         end
     end
 
     function drawTarget()
         for i, t in ipairs(targetList) do
             love.graphics.setColor(1,0.8,0.2)
+            love.graphics.circle("fill", t.x, t.y, t.radius)
+            resetColor()
+        end
+    end
+
+    function drawRedTarget()
+        for i, t in ipairs(redTargetList) do
+            love.graphics.setColor(1, 0.1, 0.1) -- rouge
             love.graphics.circle("fill", t.x, t.y, t.radius)
             resetColor()
         end
@@ -157,6 +200,30 @@ function love.load()
                 })
 
                 table.remove(targetList, i)
+            end
+        end
+    end
+
+    function updateRedTarget()
+        for i = #redTargetList, 1, -1 do
+            local target = redTargetList[i]
+            if checkCollision(snake, target) then
+                snake.life = snake.life - 1
+    
+                table.insert(animationList, {
+                    x = target.x,
+                    y = target.y,
+                    radius = target.radius,
+                    life = 0.3,
+                    maxLife = 0.3
+                })
+    
+                table.remove(redTargetList, i)
+    
+                if snake.life <= 0 then
+                    gameState = "gameIsOver"
+                    timer = 0
+                end
             end
         end
     end
@@ -242,11 +309,14 @@ function love.update(dt)
     if gameState == "gameIsRunning" then
         handleControl(dt)
         spawnTarget()
+        spawnRedTarget()              
         updateTarget()
+        updateRedTarget()            
         updateParticle(dt)
         updateCollisionAnimation(dt)
         handleScreenCollision()
     end
+    
 end
 
 function love.draw()
@@ -254,9 +324,11 @@ function love.draw()
         drawTimer()
         drawScore()
         drawTarget()
+        drawRedTarget()
         DrawSnake()
         drawParticle()
         drawCollisionAnimation()
+        drawSnakeLife()
     elseif gameState == "gameIsOver" then
         gameOver()
     elseif gameState == "win" then
