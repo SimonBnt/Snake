@@ -142,7 +142,6 @@ function love.load()
         end
     end
     
-
     function spawnRedTarget()
         if #redTargetList < maxRedTarget then
             local x = math.random(20, 1260)
